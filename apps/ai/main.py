@@ -1,5 +1,9 @@
 from dotenv import load_dotenv
 
+from langfuse import Langfuse
+from livekit.agents.telemetry import set_tracer_provider
+from opentelemetry.sdk.trace import TracerProvider
+
 from livekit import agents, rtc
 from livekit.agents import (
     AgentSession,
@@ -55,6 +59,30 @@ APP_DIR = Path(__file__).resolve().parent
 load_dotenv(APP_DIR / ".env")
 
 API_PORT = int(os.getenv("AI_API_PORT", "5555"))
+
+def setup_langfuse(metadata: dict[str, object]) -> TracerProvider | None:
+    public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.getenv("LANGFUSE_SECRET_KEY")
+    base_url = os.getenv("LANGFUSE_BASE_URL") or os.getenv("LANGFUSE_HOST")
+
+    if not public_key or not secret_key or not base_url:
+        logger.warning("[LANGFUSE] tracing is disabled because credentials are incomplete")
+        return None
+
+    tracer_provider = TracerProvider()
+    set_tracer_provider(tracer_provider, metadata=metadata)
+
+    Langfuse(
+        public_key=public_key,
+        secret_key=secret_key,
+        base_url=base_url,
+        tracer_provider=tracer_provider,
+        should_export_span=lambda span: True,
+    )
+
+    logger.info("[LANGFUSE] tracing is enabled")
+    return tracer_provider
+
 DEFAULT_SYSTEM_PROMPT = (
     "You are a friendly, reliable voice assistant that answers questions, "
     "explains topics, and completes tasks with available tools."
