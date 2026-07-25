@@ -1,5 +1,9 @@
 from dotenv import load_dotenv
 
+from langfuse import Langfuse
+from livekit.agents.telemetry import set_tracer_provider
+from opentelemetry.sdk.trace import TracerProvider
+
 from livekit import agents, rtc
 from livekit.agents import (
     AgentSession,
